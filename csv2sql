@@ -1,0 +1,40 @@
+#!/usr/bin/env php
+<?php
+    $s = "s:f:o:n:t:";
+    $options = getopt($s);
+    
+    if(sizeof($options) == 5 && isset($options['s']) && isset($options['f']) 
+        && isset($options['o']) && isset($options['n']) && isset($options['t'])) {
+        $separator = $options['s'];
+        $infile = $options['f'];
+        $outfile = $options['o'];
+        $fields = explode(',', $options['n']);
+        $table = $options['t'];
+
+        if(file_exists($infile)) {
+            $op = fopen($outfile, 'w') or die(sprintf('Unable to create file %s!', $outfile));
+            $fp = fopen($infile, 'r') or die(sprintf('Unable to open file %s!', $infile));
+            while(!feof($fp)) {
+                $line = fgets($fp);
+                $columns = explode(';', $line);
+            
+                $qfields = array_map(function($item) {
+                    return sprintf("`%s`", trim($item));
+                }, $fields);
+
+                $qcolumns = array_map(function($item) {
+                    return sprintf("'%s'", trim($item));
+                }, $columns); 
+
+                $sql = sprintf("insert into %s (%s) values (%s);%s", $table, join(',', $qfields), join(',', $qcolumns), PHP_EOL);
+                fwrite($op, $sql);
+            }
+            fclose($fp);
+            fclose($op);
+        } else {
+            echo sprintf("File %s doesn't exists %s", $infile, PHP_EOL);
+        }
+    } else {
+        echo 'Usage: csv2sql -s";" -f infile.csv -o outfile.sql -n "field1, field2, field3" -t table_name' . PHP_EOL;
+    }
+?>
